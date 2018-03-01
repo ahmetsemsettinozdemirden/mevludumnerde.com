@@ -1,27 +1,80 @@
 package controllers;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import models.Mevlut;
+import models.Position;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
+import java.util.List;
+
 public class MevlutController extends Controller {
 
-    public Result get() {
+    public Result getAll() {
 
-        //[{ position: {lat: 38.3292676, lng: 26.6414996} }]
+        List<Mevlut> mevluts = Mevlut.find.all();
 
-        ArrayNode result = Json.newArray();
-        ObjectNode mevlut = Json.newObject();
-        mevlut.set("position", Json.newObject().put("lat", 38.3292676).put("lng", 26.6414996));
-        result.add(mevlut);
+        return ok(Json.toJson(mevluts));
+    }
 
-        return ok(result);
+    public Result get(Long id) {
+
+        Mevlut mevlut = Mevlut.find.query().where().eq("id", id).findOne();
+
+        if(mevlut == null)
+            return notFound();
+
+        return ok(Json.toJson(mevlut));
     }
 
     public Result create() {
-        return TODO;
+
+        JsonNode body = request().body().asJson();
+
+        Mevlut mevlut = new Mevlut();
+
+        Position pos = new Position();
+        pos.latitude = body.get("position").get("latitude").asDouble();
+        pos.longitude = body.get("position").get("longitude").asDouble();
+        pos.save();
+
+        mevlut.name = body.get("name").asText();
+        mevlut.description = body.get("description").asText();
+        mevlut.position = pos;
+        mevlut.save();
+
+        return ok(Json.toJson(mevlut));
+    }
+
+    public Result update(Long id) {
+
+        Mevlut mevlut = Mevlut.find.query().where().eq("id", id).findOne();
+
+        if(mevlut == null)
+            return notFound();
+
+        JsonNode body = request().body().asJson();
+
+        mevlut.name = body.get("name").asText();
+        mevlut.description = body.get("description").asText();
+        mevlut.position.latitude = body.get("position").get("latitude").asDouble();
+        mevlut.position.longitude = body.get("position").get("longitude").asDouble();
+        mevlut.save();
+
+        return ok();
+    }
+
+    public Result delete(Long id) {
+
+        Mevlut mevlut = Mevlut.find.query().where().eq("id", id).findOne();
+
+        if(mevlut == null)
+            return notFound();
+
+        mevlut.delete();
+
+        return ok();
     }
 
 }
