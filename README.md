@@ -1,2 +1,10 @@
 # mevludumnerde.com
-Civardaki mevlutleri gosteren uygulama.
+Web application shows location of 'Mevlut's on the google maps.
+
+## api
+Play framework
+
+## site
+jquery
+
+All Contributions Welcome!
