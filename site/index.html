@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>Hello, world!</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+        #createMevlut {
+            position: absolute;
+            display: none;
+            left: 20px;
+            top: 20px;
+            z-index: 1000;
+        }
+
+    </style>
+  </head>
+  <body>
+
+      <div id="createMevlut" class="card">
+          <div class="modal-header">
+              <h5 class="modal-title">Mevlut Ekle</h5>
+              <button onclick="disableCreateMevlutMarker()" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="card-body">
+              <form>
+                  <div class="form-group">
+                      <label for="createMevlutTitle">Baslik</label>
+                      <input type="text" class="form-control" id="createMevlutTitle" placeholder="Baslik...">
+                      <!--<small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>-->
+                  </div>
+                  <div class="form-group">
+                      <label for="createMevlutDescription">Aciklama</label>
+                      <textarea class="form-control" id="createMevlutDescription" placeholder="Aciklama..."></textarea>
+                      <!--<small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>-->
+                  </div>
+                  <button id="createMevlutButton" class="btn btn-primary">Olustur</button>
+              </form>
+          </div>
+      </div>
+
+    <div id="map"></div>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script>
+
+        var map;
+        var mevluts; // { name: 'mevlut', description: 'aciklama', position: { latitude: 38.9637, longitude: 35.2433 } }
+        var createMevlutMarker;
+
+        $(document).ready(function(){
+
+            // construct createMevlutMarker
+            createMevlutMarker = new google.maps.Marker({ map: map, visible: false });
+
+            var update_timeout = null;
+            google.maps.event.addListener(map, 'click', function(event){
+                update_timeout = setTimeout(function(){
+                    enableCreateMevlutMarker(event.latLng);
+                }, 200);
+            });
+
+            google.maps.event.addListener(map, 'dblclick', function(event) {
+                clearTimeout(update_timeout);
+            });
+
+            // add mevlut markers 'http://localhost:9000/mevlut'
+            ajax('http://localhost:9000/mevlut', 'get', null, function (data) {
+                mevluts = data;
+                mevluts.map(function (mevlut) {
+                    return new google.maps.Marker({
+                        position: { lat: mevlut.position.latitude, lng: mevlut.position.longitude },
+                        label: mevlut.name,
+                        map: map
+                    });
+                });
+                console.log("Data: " + data);
+            }, function () {
+                alert("Error!");
+            });
+
+            // add mevlut button listener
+            $("#createMevlutButton").click(function (event) {
+                event.preventDefault();
+
+                var body = {
+                    name: $("#createMevlutTitle").val(),
+                    description: $("#createMevlutDescription").val(),
+                    position: {
+                        latitude: createMevlutMarker.getPosition().lat(),
+                        longitude: createMevlutMarker.getPosition().lng()
+                    }
+                };
+
+                console.log(body);
+
+                ajax('http://localhost:9000/mevlut', 'post', body, function (data) {
+                    disableCreateMevlutMarker();
+                    mevluts.push(body);
+                    new google.maps.Marker({
+                        position: { lat: body.position.latitude, lng: body.position.longitude },
+                        label: body.name,
+                        map: map
+                    });
+                }, function() {
+                    alert("Error!");
+                });
+            });
+
+
+
+
+        });
+
+
+        function initMap() {
+
+            // construct map instance
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 38.9637, lng: 35.2433 },
+                zoom: 6
+            });
+
+        }
+
+        function enableCreateMevlutMarker(pos) {
+            createMevlutMarker.setPosition(pos);
+            createMevlutMarker.setVisible(true);
+            document.getElementById("createMevlut").style.display = 'flex';
+        }
+
+        function disableCreateMevlutMarker() {
+            createMevlutMarker.setVisible(false);
+            document.getElementById("createMevlut").style.display = 'none';
+        }
+
+        function ajax(url, type, body, successCb, errorCb) {
+            console.log("body:" + JSON.stringify(body));
+            $.ajax({
+                url: url,
+                type: type,
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                data: JSON.stringify(body),
+                success: function (data) {
+                    successCb(data);
+                },
+                error: function (xhr, status, error) {
+                    errorCb(xhr, status, error);
+                },
+            });
+        }
+
+    </script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBUmf8agkIVXShrwoWp2-ijA792sxVM6sI&callback=initMap" async defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+  </body>
+</html>

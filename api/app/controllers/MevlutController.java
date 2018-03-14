@@ -3,7 +3,9 @@ package controllers;
 import com.fasterxml.jackson.databind.JsonNode;
 import models.Mevlut;
 import models.Position;
+import play.Logger;
 import play.libs.Json;
+import play.mvc.BodyParser;
 import play.mvc.Controller;
 import play.mvc.Result;
 
@@ -28,6 +30,7 @@ public class MevlutController extends Controller {
         return ok(Json.toJson(mevlut));
     }
 
+    @BodyParser.Of(BodyParser.Json.class)
     public Result create() {
 
         JsonNode body = request().body().asJson();
